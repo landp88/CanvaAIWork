@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python 變數視覺化教學</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f9ff;
+        }
+        
+        .code-font {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .memory-box {
+            transition: all 0.3s ease;
+        }
+        
+        .memory-value {
+            transition: all 0.5s ease;
+        }
+        
+        .highlight {
+            background-color: rgba(254, 243, 199, 0.7);
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5);
+        }
+        
+        .executed {
+            color: #4b5563;
+        }
+        
+        .current {
+            background-color: rgba(236, 253, 245, 0.7);
+            border-left: 4px solid rgba(16, 185, 129, 0.7);
+        }
+        
+        .arrow {
+            position: absolute;
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 15px solid #3b82f6;
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-4 px-6 shadow-lg">
+            <h1 class="text-2xl md:text-3xl font-bold text-center">Python 變數視覺化教學</h1>
+        </header>
+        
+        <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">變數賦值與運算視覺化</h2>
+                    <p class="text-gray-600">觀察 Python 程式碼執行時，變數值如何變化</p>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+                    <!-- 程式碼區塊 -->
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-inner">
+                        <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Python 程式碼
+                        </h3>
+                        <div class="code-font bg-gray-800 text-white p-4 rounded-lg text-lg leading-relaxed">
+                            <pre id="code-display" class="whitespace-pre-wrap">
+<span id="line1" class="py-1 px-2 block rounded-md">a = 10</span>
+<span id="line2" class="py-1 px-2 block rounded-md">b = 20</span>
+<span id="line3" class="py-1 px-2 block rounded-md">a = a + b</span>
+<span id="line4" class="py-1 px-2 block rounded-md">print(f"a = {a}, b = {b}")</span></pre>
+                        </div>
+                        
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <button id="step-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                </svg>
+                                下一步
+                            </button>
+                            <button id="reset-btn" class="btn bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg shadow-md flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                </svg>
+                                重置
+                            </button>
+                            <button id="auto-btn" class="btn bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                </svg>
+                                自動執行
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <button id="example0-btn" class="btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md text-sm">範例 1: 基本賦值</button>
+                            <button id="example1-btn" class="btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md text-sm">範例 2: 變數交換</button>
+                            <button id="example2-btn" class="btn bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md text-sm">範例 3: 計算總和</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 變數視覺化區塊 -->
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-inner">
+                        <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                            </svg>
+                            記憶體視覺化
+                        </h3>
+                        
+                        <div class="bg-white border-2 border-gray-200 rounded-lg p-4 relative">
+                            <h4 class="text-sm font-medium text-gray-500 mb-4">變數狀態</h4>
+                            
+                            <div class="flex flex-col space-y-4">
+                                <div id="var-a" class="memory-box flex items-center p-3 border border-gray-300 rounded-lg">
+                                    <div class="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-lg mr-4">
+                                        <span class="text-blue-800 font-bold text-xl">a</span>
+                                    </div>
+                                    <div class="memory-value bg-gray-100 px-4 py-2 rounded-md text-gray-400">
+                                        未定義
+                                    </div>
+                                </div>
+                                
+                                <div id="var-b" class="memory-box flex items-center p-3 border border-gray-300 rounded-lg">
+                                    <div class="w-12 h-12 flex items-center justify-center bg-purple-100 rounded-lg mr-4">
+                                        <span class="text-purple-800 font-bold text-xl">b</span>
+                                    </div>
+                                    <div class="memory-value bg-gray-100 px-4 py-2 rounded-md text-gray-400">
+                                        未定義
+                                    </div>
+                                </div>
+                                
+                                <div id="var-sum" class="memory-box flex items-center p-3 border border-gray-300 rounded-lg hidden">
+                                    <div class="w-12 h-12 flex items-center justify-center bg-green-100 rounded-lg mr-4">
+                                        <span class="text-green-800 font-bold text-xl">sum</span>
+                                    </div>
+                                    <div class="memory-value bg-gray-100 px-4 py-2 rounded-md text-gray-400">
+                                        未定義
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="output-container" class="mt-6 hidden">
+                                <h4 class="text-sm font-medium text-gray-500 mb-2">輸出結果</h4>
+                                <div id="output" class="bg-black text-green-400 p-3 rounded-lg code-font"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium text-gray-700 mb-2 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                說明
+                            </h3>
+                            <div id="explanation" class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-gray-700">
+                                點擊「下一步」按鈕開始執行程式碼，觀察變數的變化。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="bg-gray-800 text-white py-4 px-6 text-center">
+            <p>Python 變數視覺化教學 | 互動式學習工具</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化變數
+            let currentStep = 0;
+            let autoRunInterval = null;
+            let steps = [
+                {
+                    line: 1,
+                    action: () => {
+                        updateVariable('a', 10);
+                        return '變數 a 被賦值為 10';
+                    }
+                },
+                {
+                    line: 2,
+                    action: () => {
+                        updateVariable('b', 20);
+                        return '變數 b 被賦值為 20';
+                    }
+                },
+                {
+                    line: 3,
+                    action: () => {
+                        // 先高亮 a 和 b，表示讀取它們的值
+                        highlightVariable('a');
+                        highlightVariable('b');
+                        setTimeout(() => {
+                            // 然後更新 a 的值
+                            updateVariable('a', 30);
+                            removeHighlight('a');
+                            removeHighlight('b');
+                        }, 1000);
+                        return 'a + b 計算結果為 30，並賦值給 a';
+                    }
+                },
+                {
+                    line: 4,
+                    action: () => {
+                        const outputContainer = document.getElementById('output-container');
+                        const output = document.getElementById('output');
+                        outputContainer.classList.remove('hidden');
+                        output.textContent = `a = 30, b = 20`;
+                        return '輸出 a 和 b 的當前值';
+                    }
+                }
+            ];
+            
+            // 獲取元素
+            const stepBtn = document.getElementById('step-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const autoBtn = document.getElementById('auto-btn');
+            const example0Btn = document.getElementById('example0-btn');
+            const example1Btn = document.getElementById('example1-btn');
+            const example2Btn = document.getElementById('example2-btn');
+            const codeDisplay = document.getElementById('code-display');
+            const explanation = document.getElementById('explanation');
+            
+            // 事件監聽器
+            stepBtn.addEventListener('click', nextStep);
+            resetBtn.addEventListener('click', resetSimulation);
+            autoBtn.addEventListener('click', toggleAutoRun);
+            example0Btn.addEventListener('click', loadExample0);
+            example1Btn.addEventListener('click', loadExample1);
+            example2Btn.addEventListener('click', loadExample2);
+            
+            // 函數定義
+            function nextStep() {
+                if (currentStep < steps.length) {
+                    // 高亮當前執行的行
+                    highlightCodeLine(steps[currentStep].line);
+                    
+                    // 執行當前步驟的動作
+                    const explanationText = steps[currentStep].action();
+                    explanation.textContent = explanationText;
+                    
+                    // 標記已執行的行
+                    if (currentStep > 0) {
+                        markLineAsExecuted(steps[currentStep - 1].line);
+                    }
+                    
+                    currentStep++;
+                } else {
+                    explanation.textContent = "程式執行完畢。點擊「重置」按鈕重新開始。";
+                    if (autoRunInterval) {
+                        clearInterval(autoRunInterval);
+                        autoRunInterval = null;
+                        autoBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                            </svg>
+                            自動執行
+                        `;
+                    }
+                }
+            }
+            
+            function resetSimulation() {
+                currentStep = 0;
+                
+                // 重置程式碼高亮
+                const allLines = document.querySelectorAll('[id^="line"]');
+                allLines.forEach(line => {
+                    line.classList.remove('current', 'executed');
+                });
+                
+                // 重置變數
+                updateVariable('a', null);
+                updateVariable('b', null);
+                
+                // 隱藏 sum 變數 (如果存在)
+                const sumVar = document.getElementById('var-sum');
+                if (sumVar) {
+                    sumVar.classList.add('hidden');
+                    updateVariable('sum', null);
+                }
+                
+                // 隱藏輸出
+                const outputContainer = document.getElementById('output-container');
+                outputContainer.classList.add('hidden');
+                
+                // 重置說明
+                explanation.textContent = "點擊「下一步」按鈕開始執行程式碼，觀察變數的變化。";
+                
+                // 停止自動執行
+                if (autoRunInterval) {
+                    clearInterval(autoRunInterval);
+                    autoRunInterval = null;
+                    autoBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        自動執行
+                    `;
+                }
+            }
+            
+            function toggleAutoRun() {
+                if (autoRunInterval) {
+                    clearInterval(autoRunInterval);
+                    autoRunInterval = null;
+                    autoBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        自動執行
+                    `;
+                } else {
+                    autoRunInterval = setInterval(() => {
+                        if (currentStep < steps.length) {
+                            nextStep();
+                        } else {
+                            clearInterval(autoRunInterval);
+                            autoRunInterval = null;
+                            autoBtn.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                </svg>
+                                自動執行
+                            `;
+                        }
+                    }, 1500);
+                    autoBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5 9a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        停止
+                    `;
+                }
+            }
+            
+            function loadExample0() {
+                // 基本賦值範例
+                const code = `a = 10
+b = 20
+a = a + b
+print(f"a = {a}, b = {b}")`;
+                
+                // 更新程式碼顯示
+                updateCodeDisplay(code);
+                
+                // 定義步驟
+                steps = [
+                    {
+                        line: 1,
+                        action: () => {
+                            updateVariable('a', 10);
+                            return '變數 a 被賦值為 10';
+                        }
+                    },
+                    {
+                        line: 2,
+                        action: () => {
+                            updateVariable('b', 20);
+                            return '變數 b 被賦值為 20';
+                        }
+                    },
+                    {
+                        line: 3,
+                        action: () => {
+                            highlightVariable('a');
+                            highlightVariable('b');
+                            setTimeout(() => {
+                                updateVariable('a', 30);
+                                removeHighlight('a');
+                                removeHighlight('b');
+                            }, 1000);
+                            return 'a + b 計算結果為 30，並賦值給 a';
+                        }
+                    },
+                    {
+                        line: 4,
+                        action: () => {
+                            const outputContainer = document.getElementById('output-container');
+                            const output = document.getElementById('output');
+                            outputContainer.classList.remove('hidden');
+                            output.textContent = `a = 30, b = 20`;
+                            return '輸出 a 和 b 的當前值';
+                        }
+                    }
+                ];
+                
+                // 重置模擬
+                resetSimulation();
+                
+                // 隱藏 sum 變數
+                document.getElementById('var-sum').classList.add('hidden');
+            }
+            
+            function loadExample1() {
+                // 變數交換範例
+                const code = `a = 10
+b = 20
+print(f"交換前: a = {a}, b = {b}")
+a, b = b, a
+print(f"交換後: a = {a}, b = {b}")`;
+                
+                // 更新程式碼顯示
+                updateCodeDisplay(code);
+                
+                // 定義步驟
+                steps = [
+                    {
+                        line: 1,
+                        action: () => {
+                            updateVariable('a', 10);
+                            return '變數 a 被賦值為 10';
+                        }
+                    },
+                    {
+                        line: 2,
+                        action: () => {
+                            updateVariable('b', 20);
+                            return '變數 b 被賦值為 20';
+                        }
+                    },
+                    {
+                        line: 3,
+                        action: () => {
+                            const outputContainer = document.getElementById('output-container');
+                            const output = document.getElementById('output');
+                            outputContainer.classList.remove('hidden');
+                            output.textContent = `交換前: a = 10, b = 20`;
+                            return '輸出交換前的 a 和 b 的值';
+                        }
+                    },
+                    {
+                        line: 4,
+                        action: () => {
+                            highlightVariable('a');
+                            highlightVariable('b');
+                            setTimeout(() => {
+                                updateVariable('a', 20);
+                                updateVariable('b', 10);
+                                removeHighlight('a');
+                                removeHighlight('b');
+                            }, 1000);
+                            return '變數 a 和 b 的值交換';
+                        }
+                    },
+                    {
+                        line: 5,
+                        action: () => {
+                            const outputContainer = document.getElementById('output-container');
+                            const output = document.getElementById('output');
+                            outputContainer.classList.remove('hidden');
+                            output.textContent = `交換後: a = 20, b = 10`;
+                            return '輸出交換後的 a 和 b 的值';
+                        }
+                    }
+                ];
+                
+                // 重置模擬
+                resetSimulation();
+                
+                // 隱藏 sum 變數
+                document.getElementById('var-sum').classList.add('hidden');
+            }
+            
+            function loadExample2() {
+                // 計算總和範例
+                const code = `a = 15
+b = 25
+sum = a + b
+print(f"a = {a}, b = {b}")
+print(f"總和 = {sum}")`;
+                
+                // 更新程式碼顯示
+                updateCodeDisplay(code);
+                
+                // 定義步驟
+                steps = [
+                    {
+                        line: 1,
+                        action: () => {
+                            updateVariable('a', 15);
+                            return '變數 a 被賦值為 15';
+                        }
+                    },
+                    {
+                        line: 2,
+                        action: () => {
+                            updateVariable('b', 25);
+                            return '變數 b 被賦值為 25';
+                        }
+                    },
+                    {
+                        line: 3,
+                        action: () => {
+                            highlightVariable('a');
+                            highlightVariable('b');
+                            
+                            // 顯示 sum 變數
+                            const sumVar = document.getElementById('var-sum');
+                            sumVar.classList.remove('hidden');
+                            
+                            setTimeout(() => {
+                                updateVariable('sum', 40);
+                                removeHighlight('a');
+                                removeHighlight('b');
+                            }, 1000);
+                            
+                            return '計算 a + b 的總和為 40，並儲存在 sum 變數中';
+                        }
+                    },
+                    {
+                        line: 4,
+                        action: () => {
+                            const outputContainer = document.getElementById('output-container');
+                            const output = document.getElementById('output');
+                            outputContainer.classList.remove('hidden');
+                            output.textContent = `a = 15, b = 25`;
+                            return '輸出 a 和 b 的當前值';
+                        }
+                    },
+                    {
+                        line: 5,
+                        action: () => {
+                            const outputContainer = document.getElementById('output-container');
+                            const output = document.getElementById('output');
+                            outputContainer.classList.remove('hidden');
+                            output.textContent = `總和 = 40`;
+                            return '輸出 a 和 b 的總和';
+                        }
+                    }
+                ];
+                
+                // 重置模擬
+                resetSimulation();
+            }
+            
+            function updateCodeDisplay(code) {
+                const lines = code.split('\n');
+                let codeHTML = '';
+                for (let i = 0; i < lines.length; i++) {
+                    codeHTML += `<span id="line${i+1}" class="py-1 px-2 block rounded-md">${lines[i]}</span>\n`;
+                }
+                codeDisplay.innerHTML = codeHTML;
+            }
+            
+            function updateVariable(name, value) {
+                const varElement = document.getElementById(`var-${name}`);
+                if (!varElement) return;
+                
+                const valueElement = varElement.querySelector('.memory-value');
+                
+                if (value === null) {
+                    valueElement.textContent = '未定義';
+                    valueElement.classList.add('text-gray-400');
+                    valueElement.classList.remove('text-gray-800', 'font-medium');
+                } else {
+                    valueElement.textContent = value;
+                    valueElement.classList.remove('text-gray-400');
+                    valueElement.classList.add('text-gray-800', 'font-medium');
+                }
+            }
+            
+            function highlightVariable(name) {
+                const varElement = document.getElementById(`var-${name}`);
+                if (varElement) {
+                    varElement.classList.add('highlight');
+                }
+            }
+            
+            function removeHighlight(name) {
+                const varElement = document.getElementById(`var-${name}`);
+                if (varElement) {
+                    varElement.classList.remove('highlight');
+                }
+            }
+            
+            function highlightCodeLine(lineNumber) {
+                const line = document.getElementById(`line${lineNumber}`);
+                if (line) {
+                    line.classList.add('current');
+                }
+            }
+            
+            function markLineAsExecuted(lineNumber) {
+                const line = document.getElementById(`line${lineNumber}`);
+                if (line) {
+                    line.classList.remove('current');
+                    line.classList.add('executed');
+                }
+            }
+            
+            // 初始載入基本賦值範例
+            loadExample0();
+        });
+    </script>
+</body>
+</html> 
