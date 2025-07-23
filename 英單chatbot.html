@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水果單字拖拉配對遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #f0fff4;
+            touch-action: none;
+        }
+
+        .draggable {
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+
+        .drop-zone {
+            border: 3px dashed #9ae6b4;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.highlight {
+            background-color: rgba(154, 230, 180, 0.3);
+            border: 3px dashed #48bb78;
+        }
+
+        .correct-match {
+            background-color: #c6f6d5;
+            border: 3px solid #48bb78;
+        }
+
+        .fruit-card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .fruit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            animation: fall 3s ease-in infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .sound-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+
+        .sound-icon:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .game-end-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-end-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .game-end-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 90%;
+            width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .game-end-overlay.active .game-end-card {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .trophy {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* 彈跳視窗樣式 */
+        #chatbotModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            width: 50vw;
+            height: 50vh;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border: 2px solid #ccc;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #chatbotModal iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #chatbotOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1001;
+            color: #333;
+        }
+
+        #chatbotIconBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background-color: #c4c6c8;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            transition: background-color 0.3s ease;
+        }
+
+        #chatbotIconBtn:hover {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-green-600 mb-2">水果單字拖拉配對遊戲</h1>
+            <p class="text-xl text-green-500">將英文水果名稱拖曳到對應的圖片上！</p>
+            <p class="text-md text-green-500 mt-2">正確配對時，系統會自動唸出單字</p>
+        </header>
+
+        <div class="flex flex-col md:flex-row justify-between gap-8 mb-8">
+            <div id="words-container" class="flex flex-wrap justify-center gap-4 md:w-1/2">
+                <!-- Word cards will be generated here -->
+            </div>
+
+            <div id="images-container" class="grid grid-cols-2 gap-4 md:w-1/2">
+                <!-- Image cards will be generated here -->
+            </div>
+        </div>
+
+        <div class="text-center flex justify-center gap-4">
+            <button id="reset-btn"
+                class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg">
+                重新開始
+            </button>
+            <button id="quit-btn"
+                class="btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg">
+                不玩了
+            </button>
+            <div id="completion-message" class="mt-4 text-2xl font-bold text-green-600 hidden">
+                太棒了！你成功配對所有水果！ 🎉
+            </div>
+        </div>
+    </div>
+    <!-- <div class="w-full h-64 md:h-96 relative mb-8">
+                <iframe src="https://app.edcafe.ai/chatbots/684d13d21b4a2158796d8d43" title=智能聊天小助手 width="100%" height="100%" style="border: none;"></iframe>
+    </div>     -->
+    <button id="chatbotIconBtn" onclick="openChatbot()" title="聊天小助手">
+        <img src="chat-icon.svg" alt="聊天小助手" style="width: 55px; height: 55px;">
+    </button>
+    <!-- 半透明背景 -->
+    <div id="chatbotOverlay" onclick="closeChatbot()"></div>
+
+    <!-- 彈跳視窗 -->
+    <div id="chatbotModal">
+        <span class="close-btn" onclick="closeChatbot()">✖</span>
+        <iframe src="https://app.edcafe.ai/chatbots/684d13d21b4a2158796d8d43" title="智能聊天小助手">
+        </iframe>
+    </div>
+    <div id="celebration" class="celebration">
+    </div>
+
+    <div id="game-end-overlay" class="game-end-overlay">
+        <div class="game-end-card">
+            <div class="trophy">🏆</div>
+            <h2 class="text-3xl font-bold text-green-600 mb-4">遊戲結束</h2>
+            <p id="end-message" class="text-xl mb-6">感謝你玩這個水果單字配對遊戲！</p>
+            <div class="flex justify-center gap-4">
+                <button id="play-again-btn"
+                    class="btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg">
+                    再玩一次
+                </button>
+                <button id="confirm-quit-btn"
+                    class="btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg">
+                    確認離開
+                </button>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fruits = [
+                { name: 'apple', emoji: '🍎', color: 'bg-red-100' },
+                { name: 'orange', emoji: '🍊', color: 'bg-orange-100' },
+                { name: 'watermelon', emoji: '🍉', color: 'bg-pink-100' },
+                { name: 'grape', emoji: '🍇', color: 'bg-purple-100' },
+                { name: 'banana', emoji: '🍌', color: 'bg-yellow-100' },
+                { name: 'mango', emoji: '🥭', color: 'bg-amber-100' }
+            ];
+
+            const wordsContainer = document.getElementById('words-container');
+            const imagesContainer = document.getElementById('images-container');
+            const resetBtn = document.getElementById('reset-btn');
+            const quitBtn = document.getElementById('quit-btn');
+            const completionMessage = document.getElementById('completion-message');
+            const celebration = document.getElementById('celebration');
+            const gameEndOverlay = document.getElementById('game-end-overlay');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const confirmQuitBtn = document.getElementById('confirm-quit-btn');
+            const endMessage = document.getElementById('end-message');
+
+            let matchedPairs = 0;
+            let draggedElement = null;
+
+            // Speech synthesis setup
+            const synth = window.speechSynthesis;
+
+            function speakWord(word) {
+                // Cancel any ongoing speech
+                synth.cancel();
+
+                // Create a new utterance
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+
+                // Speak the word
+                synth.speak(utterance);
+            }
+
+            // Shuffle array function
+            function shuffleArray(array) {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            }
+
+            // Initialize game
+            function initGame() {
+                wordsContainer.innerHTML = '';
+                imagesContainer.innerHTML = '';
+                matchedPairs = 0;
+                completionMessage.classList.add('hidden');
+                gameEndOverlay.classList.remove('active');
+
+                const shuffledFruits = shuffleArray(fruits);
+                const shuffledImages = shuffleArray([...fruits]);
+
+                // Create word cards
+                shuffledFruits.forEach(fruit => {
+                    const wordCard = document.createElement('div');
+                    wordCard.className = `draggable fruit-card ${fruit.color} p-4 rounded-lg text-center font-bold text-xl shadow-md relative`;
+                    wordCard.textContent = fruit.name;
+                    wordCard.dataset.fruit = fruit.name;
+                    wordCard.draggable = true;
+
+                    // Add sound icon
+                    const soundIcon = document.createElement('div');
+                    soundIcon.className = 'sound-icon';
+                    soundIcon.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+                            <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+                        </svg>
+                    `;
+                    soundIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        speakWord(fruit.name);
+                    });
+
+                    wordCard.appendChild(soundIcon);
+
+                    wordCard.addEventListener('dragstart', dragStart);
+                    wordCard.addEventListener('touchstart', touchStart, { passive: false });
+
+                    wordsContainer.appendChild(wordCard);
+                });
+
+                // Create image cards with drop zones
+                shuffledImages.forEach(fruit => {
+                    const imageCard = document.createElement('div');
+                    imageCard.className = 'relative fruit-card bg-white p-4 rounded-lg shadow-md';
+
+                    const fruitEmoji = document.createElement('div');
+                    fruitEmoji.className = 'text-6xl text-center mb-2';
+                    fruitEmoji.textContent = fruit.emoji;
+
+                    const dropZone = document.createElement('div');
+                    dropZone.className = 'drop-zone h-12 rounded-lg flex items-center justify-center';
+                    dropZone.dataset.fruit = fruit.name;
+
+                    dropZone.addEventListener('dragover', dragOver);
+                    dropZone.addEventListener('dragenter', dragEnter);
+                    dropZone.addEventListener('dragleave', dragLeave);
+                    dropZone.addEventListener('drop', drop);
+
+                    imageCard.appendChild(fruitEmoji);
+                    imageCard.appendChild(dropZone);
+                    imagesContainer.appendChild(imageCard);
+                });
+
+                // Add touch event listeners to the document
+                document.addEventListener('touchmove', touchMove, { passive: false });
+                document.addEventListener('touchend', touchEnd);
+            }
+
+            // Drag and drop functions
+            function dragStart(e) {
+                draggedElement = this;
+                setTimeout(() => {
+                    this.classList.add('opacity-50');
+                }, 0);
+            }
+
+            function dragOver(e) {
+                e.preventDefault();
+            }
+
+            function dragEnter(e) {
+                e.preventDefault();
+                this.classList.add('highlight');
+            }
+
+            function dragLeave() {
+                this.classList.remove('highlight');
+            }
+
+            function drop(e) {
+                e.preventDefault();
+                this.classList.remove('highlight');
+
+                if (draggedElement) {
+                    const fruitName = draggedElement.dataset.fruit;
+                    const targetFruit = this.dataset.fruit;
+
+                    if (fruitName === targetFruit) {
+                        // Correct match
+                        this.textContent = fruitName;
+                        this.classList.add('correct-match');
+                        this.classList.remove('drop-zone');
+
+                        // Speak the word
+                        speakWord(fruitName);
+
+                        // Add sound icon to matched word
+                        const soundIcon = document.createElement('div');
+                        soundIcon.className = 'sound-icon';
+                        soundIcon.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+                                <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+                            </svg>
+                        `;
+                        soundIcon.addEventListener('click', () => {
+                            speakWord(fruitName);
+                        });
+
+                        this.appendChild(soundIcon);
+
+                        draggedElement.remove();
+
+                        // Disable further drops on this element
+                        this.removeEventListener('dragover', dragOver);
+                        this.removeEventListener('dragenter', dragEnter);
+                        this.removeEventListener('dragleave', dragLeave);
+                        this.removeEventListener('drop', drop);
+
+                        matchedPairs++;
+
+                        // Check if all pairs are matched
+                        if (matchedPairs === fruits.length) {
+                            setTimeout(showCompletion, 500);
+                        }
+                    } else {
+                        // Incorrect match - shake effect
+                        this.classList.add('animate-bounce');
+                        setTimeout(() => {
+                            this.classList.remove('animate-bounce');
+                        }, 500);
+                    }
+
+                    draggedElement.classList.remove('opacity-50');
+                    draggedElement = null;
+                }
+            }
+
+            // Touch functions for mobile support
+            function touchStart(e) {
+                if (draggedElement) return;
+
+                // Check if we clicked on the sound icon
+                if (e.target.closest('.sound-icon')) {
+                    return;
+                }
+
+                e.preventDefault();
+                draggedElement = this;
+                this.classList.add('opacity-50');
+
+                const touch = e.targetTouches[0];
+                const offsetX = touch.clientX - this.getBoundingClientRect().left;
+                const offsetY = touch.clientY - this.getBoundingClientRect().top;
+
+                draggedElement.dataset.offsetX = offsetX;
+                draggedElement.dataset.offsetY = offsetY;
+
+                // Create a clone for dragging visual
+                const clone = this.cloneNode(true);
+                clone.id = 'dragging-clone';
+                clone.style.position = 'fixed';
+                clone.style.zIndex = '1000';
+                clone.style.pointerEvents = 'none';
+                clone.style.opacity = '0.8';
+                clone.style.left = `${touch.clientX - offsetX}px`;
+                clone.style.top = `${touch.clientY - offsetY}px`;
+                document.body.appendChild(clone);
+            }
+
+            function touchMove(e) {
+                if (!draggedElement) return;
+
+                e.preventDefault();
+                const touch = e.targetTouches[0];
+                const clone = document.getElementById('dragging-clone');
+
+                if (clone) {
+                    const offsetX = parseInt(draggedElement.dataset.offsetX);
+                    const offsetY = parseInt(draggedElement.dataset.offsetY);
+
+                    clone.style.left = `${touch.clientX - offsetX}px`;
+                    clone.style.top = `${touch.clientY - offsetY}px`;
+
+                    // Highlight drop zone under touch
+                    const dropZones = document.querySelectorAll('.drop-zone');
+                    dropZones.forEach(zone => {
+                        zone.classList.remove('highlight');
+
+                        const rect = zone.getBoundingClientRect();
+                        if (
+                            touch.clientX >= rect.left &&
+                            touch.clientX <= rect.right &&
+                            touch.clientY >= rect.top &&
+                            touch.clientY <= rect.bottom
+                        ) {
+                            zone.classList.add('highlight');
+                        }
+                    });
+                }
+            }
+
+            function touchEnd(e) {
+                if (!draggedElement) return;
+
+                const clone = document.getElementById('dragging-clone');
+                if (clone) {
+                    // Find if we're over a drop zone
+                    const touch = e.changedTouches[0];
+                    const dropZones = document.querySelectorAll('.drop-zone');
+
+                    let targetZone = null;
+                    dropZones.forEach(zone => {
+                        const rect = zone.getBoundingClientRect();
+                        if (
+                            touch.clientX >= rect.left &&
+                            touch.clientX <= rect.right &&
+                            touch.clientY >= rect.top &&
+                            touch.clientY <= rect.bottom
+                        ) {
+                            targetZone = zone;
+                        }
+                        zone.classList.remove('highlight');
+                    });
+
+                    if (targetZone) {
+                        const fruitName = draggedElement.dataset.fruit;
+                        const targetFruit = targetZone.dataset.fruit;
+
+                        if (fruitName === targetFruit) {
+                            // Correct match
+                            targetZone.textContent = fruitName;
+                            targetZone.classList.add('correct-match');
+                            targetZone.classList.remove('drop-zone');
+
+                            // Speak the word
+                            speakWord(fruitName);
+
+                            // Add sound icon to matched word
+                            const soundIcon = document.createElement('div');
+                            soundIcon.className = 'sound-icon';
+                            soundIcon.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+                                    <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+                                </svg>
+                            `;
+                            soundIcon.addEventListener('click', () => {
+                                speakWord(fruitName);
+                            });
+
+                            targetZone.appendChild(soundIcon);
+
+                            draggedElement.remove();
+
+                            // Disable further drops on this element
+                            targetZone.removeEventListener('dragover', dragOver);
+                            targetZone.removeEventListener('dragenter', dragEnter);
+                            targetZone.removeEventListener('dragleave', dragLeave);
+                            targetZone.removeEventListener('drop', drop);
+
+                            matchedPairs++;
+
+                            // Check if all pairs are matched
+                            if (matchedPairs === fruits.length) {
+                                setTimeout(showCompletion, 500);
+                            }
+                        } else {
+                            // Incorrect match - shake effect
+                            targetZone.classList.add('animate-bounce');
+                            setTimeout(() => {
+                                targetZone.classList.remove('animate-bounce');
+                            }, 500);
+                        }
+                    }
+
+                    clone.remove();
+                    draggedElement.classList.remove('opacity-50');
+                    draggedElement = null;
+                }
+            }
+
+            // Show completion celebration
+            function showCompletion() {
+                completionMessage.classList.remove('hidden');
+                celebration.style.display = 'block';
+
+                // Create confetti
+                for (let i = 0; i < 100; i++) {
+                    createConfetti();
+                }
+
+                setTimeout(() => {
+                    celebration.style.display = 'none';
+                    celebration.innerHTML = '';
+
+                    // Show game end screen with success message
+                    endMessage.textContent = '恭喜你！你成功完成了所有配對！';
+                    gameEndOverlay.classList.add('active');
+                }, 3000);
+            }
+
+            // Create a single confetti element
+            function createConfetti() {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+
+                // Random position
+                const left = Math.random() * 100;
+                confetti.style.left = `${left}%`;
+
+                // Random delay
+                const delay = Math.random() * 3;
+                confetti.style.animationDelay = `${delay}s`;
+
+                // Random color
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.backgroundColor = color;
+
+                // Random size
+                const size = Math.random() * 10 + 5;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+
+                celebration.appendChild(confetti);
+            }
+
+            // Show quit confirmation
+            function showQuitConfirmation() {
+                endMessage.textContent = '你確定要結束遊戲嗎？';
+                gameEndOverlay.classList.add('active');
+            }
+
+            // Quit game
+            function quitGame() {
+                window.location.href = 'about:blank'; // This will open a blank page
+                // Alternatively, you could redirect to another page or just close the overlay
+                // gameEndOverlay.classList.remove('active');
+            }
+
+            // Event listeners
+            resetBtn.addEventListener('click', initGame);
+            quitBtn.addEventListener('click', showQuitConfirmation);
+            playAgainBtn.addEventListener('click', initGame);
+            confirmQuitBtn.addEventListener('click', quitGame);
+
+            // Close overlay when clicking outside the card
+            gameEndOverlay.addEventListener('click', (e) => {
+                if (e.target === gameEndOverlay) {
+                    gameEndOverlay.classList.remove('active');
+                }
+            });
+
+            // Initialize game on load
+            initGame();
+        });
+
+        function openChatbot() {
+            document.getElementById('chatbotModal').style.display = 'block';
+            document.getElementById('chatbotOverlay').style.display = 'block';
+        }
+
+        function closeChatbot() {
+            document.getElementById('chatbotModal').style.display = 'none';
+            document.getElementById('chatbotOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
